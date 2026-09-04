@@ -1,0 +1,141 @@
+name: Post-merge delivery
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  deployments: write
+
+concurrency:
+  group: pages-production
+  cancel-in-progress: false
+
+env:
+  SITE_DIR: site
+  PLAYWRIGHT_VERSION: 1.62.1
+
+jobs:
+  build:
+    name: Post-merge / build and digest
+    runs-on: ubuntu-latest
+    outputs:
+      source-sha: ${{ steps.identity.outputs.source-sha }}
+      artifact-digest: ${{ steps.digest.outputs.artifact-digest }}
+    steps:
+      - name: Check out merged revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Verify source identity
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "${GITHUB_SHA}"
+          echo "source-sha=$actual" >> "$GITHUB_OUTPUT"
+
+      - name: Build the Pages artifact once
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$SITE_DIR"
+          test -f "$SITE_DIR/index.html"
+          rm -rf _site
+          cp -R "$SITE_DIR" _site
+          touch _site/.nojekyll
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -czf pages-artifact.tgz -C _site .
+
+      - name: Record immutable artifact digest
+        id: digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(sha256sum pages-artifact.tgz | cut -d' ' -f1)"
+          echo "artifact-digest=sha256:$digest" >> "$GITHUB_OUTPUT"
+          printf 'source_sha=%s\nartifact_digest=sha256:%s\n' "$GITHUB_SHA" "$digest" > delivery-evidence.txt
+
+      - name: Upload the exact artifact for promotion
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.2
+        with:
+          name: pages-${{ github.sha }}
+          path: |
+            pages-artifact.tgz
+            delivery-evidence.txt
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Post-merge / deploy and smoke
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages-deploy.outputs.page_url }}
+    steps:
+      - name: Check out merged revision for smoke tests
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.build.outputs.source-sha }}
+
+      - name: Recheck the serialized Pages target
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          deployments="$(gh api "repos/${GITHUB_REPOSITORY}/deployments?environment=github-pages&per_page=1")"
+          if [ "$(printf '%s' "$deployments" | jq 'length')" -gt 0 ]; then
+            echo 'target expectation: present'
+          else
+            echo 'target expectation: absent'
+          fi
+          echo 'in-slot recheck: serialized by concurrency group; no competing local run may overwrite this target'
+
+      - name: Download the build artifact (no rebuild)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pages-${{ needs.build.outputs.source-sha }}
+
+      - name: Verify artifact digest before promotion
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="sha256:$(sha256sum pages-artifact.tgz | cut -d' ' -f1)"
+          test "$actual" = "${{ needs.build.outputs.artifact-digest }}"
+          grep -Fx "artifact_digest=$actual" delivery-evidence.txt
+
+      - name: Extract the exact artifact for Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _site
+          mkdir _site
+          tar -xzf pages-artifact.tgz -C _site
+
+      - name: Upload the exact artifact to Pages
+        id: pages-upload
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        with:
+          path: _site
+
+      - name: Deploy the exact Pages artifact
+        id: pages-deploy
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+
+      - name: Pinned Playwright Daily Marker acceptance
+        shell: bash
+        env:
+          PAGE_URL: ${{ steps.pages-deploy.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          npx --yes "@playwright/test@${PLAYWRIGHT_VERSION}" install --with-deps chromium
+          npx --yes "@playwright/test@${PLAYWRIGHT_VERSION}" test --config=playwright.config.mjs
+          echo "deployment_sha=${{ needs.build.outputs.source-sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "artifact_digest=${{ needs.build.outputs.artifact-digest }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "smoke_url=$PAGE_URL" >> "$GITHUB_STEP_SUMMARY"
