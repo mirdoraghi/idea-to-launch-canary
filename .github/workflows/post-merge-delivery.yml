@@ -3,6 +3,13 @@ name: Post-merge delivery
 on:
   push:
     branches: [main]
+    paths:
+      - package.json
+      - package-lock.json
+      - src/**
+      - tests/**
+      - scripts/**
+      - playwright.config.mjs
 
 permissions:
   contents: read
@@ -15,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SITE_DIR: site
+  SITE_DIR: dist
   PLAYWRIGHT_VERSION: 1.62.1
 
 jobs:
@@ -40,10 +47,23 @@ jobs:
           test "$actual" = "${GITHUB_SHA}"
           echo "source-sha=$actual" >> "$GITHUB_OUTPUT"
 
-      - name: Build the Pages artifact once
+      - name: Set up Node.js
+        uses: actions/setup-node@1e60f620b9541d7c2439a2a8e7d0a6a95e4a5f1a # v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate and build
         shell: bash
         run: |
           set -euo pipefail
+          npm run lint
+          npm test
+          npm audit --omit=dev --audit-level=high
+          npm run build
           test -d "$SITE_DIR"
           test -f "$SITE_DIR/index.html"
           rm -rf _site
