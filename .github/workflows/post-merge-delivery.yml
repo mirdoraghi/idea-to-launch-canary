@@ -48,7 +48,7 @@ jobs:
           echo "source-sha=$actual" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node.js
-        uses: actions/setup-node@1e60f620b9541d7c2439a2a8e7d0a6a95e4a5f1a # v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
