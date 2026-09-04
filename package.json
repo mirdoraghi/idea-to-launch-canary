@@ -1,0 +1,12 @@
+{
+  "name": "idea-to-launch-canary",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "node --check src/daily-marker.mjs && node --check src/app.mjs && node --check scripts/build.mjs && node --check scripts/reconstruct-context.mjs",
+    "test": "node --test",
+    "build": "node scripts/build.mjs"
+  },
+  "engines": { "node": ">=20" }
+}
