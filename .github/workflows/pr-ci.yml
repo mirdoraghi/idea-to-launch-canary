@@ -1,0 +1,26 @@
+name: PR CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions: {}
+
+concurrency:
+  group: pr-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-integrity:
+    name: PR CI / repository integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PR revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Verify repository integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f README.md
+          test -f .github/workflows/pr-ci.yml
