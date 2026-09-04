@@ -1,0 +1,34 @@
+contract-id: CHG-DM-311
+policy-version: 129e2345d0bf532cb1a0ed53d9fa604eea402464
+classification:
+  change-type: N
+  effective-route: N
+  risk-flags: [ux, delivery]
+  dispositions:
+    - {flag: ux, action: DM-UX-01}
+    - {flag: delivery, action: DM-ARCH-01}
+  classified-by: implementation-agent
+  classified-at: '2026-09-05'
+dependencies:
+  - {path: docs/product/daily-marker/assessment.md, ids: [DM-A-01]}
+  - {path: docs/product/daily-marker/spec.md, ids: [DM-SPEC-01, R-01, R-02, R-03]}
+  - {path: docs/product/daily-marker/ux.md, ids: [DM-UX-01, UX-ERR-01, UX-ERR-02, UX-ERR-03]}
+  - {path: docs/product/daily-marker/architecture-recovery.md, ids: [DM-ARCH-01]}
+  - {path: docs/product/daily-marker/readiness.md, ids: [DM-READY-01]}
+stage-evidence:
+  S0: docs/product/daily-marker/assessment.md#DM-A-01
+  S1: docs/product/daily-marker/spec.md#DM-SPEC-01
+  S2: docs/product/daily-marker/spec.md#R-01
+  S3: docs/product/daily-marker/ux.md#DM-UX-01
+  S4: docs/product/daily-marker/architecture-recovery.md#DM-ARCH-01
+  S5: docs/product/daily-marker/readiness.md#DM-READY-01
+gates:
+  HG0: docs/product/daily-marker/assessment.md#DM-A-01
+  HG1: docs/product/daily-marker/spec.md#DM-SPEC-01
+  HG2: docs/product/daily-marker/ux.md#DM-UX-01
+  HG3: docs/product/daily-marker/architecture-recovery.md#DM-ARCH-01
+  HG4: docs/product/daily-marker/readiness.md#DM-READY-01
+delivery:
+  mode: deployment-only
+  target: github-pages
+  advanced-trigger: none
