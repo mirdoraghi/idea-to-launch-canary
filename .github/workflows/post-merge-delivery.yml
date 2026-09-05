@@ -23,7 +23,6 @@ concurrency:
 
 env:
   SITE_DIR: dist
-  PLAYWRIGHT_VERSION: 1.62.1
 
 jobs:
   build:
@@ -103,6 +102,15 @@ jobs:
         with:
           ref: ${{ needs.build.outputs.source-sha }}
 
+      - name: Set up Node.js for browser acceptance
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked browser-test dependencies
+        run: npm ci
+
       - name: Recheck the serialized Pages target
         env:
           GH_TOKEN: ${{ github.token }}
@@ -154,8 +162,8 @@ jobs:
           PAGE_URL: ${{ steps.pages-deploy.outputs.page_url }}
         run: |
           set -euo pipefail
-          npx --yes "@playwright/test@${PLAYWRIGHT_VERSION}" install --with-deps chromium
-          npx --yes "@playwright/test@${PLAYWRIGHT_VERSION}" test --config=playwright.config.mjs
+          npx playwright install --with-deps chromium
+          npx playwright test --config=playwright.config.mjs
           echo "deployment_sha=${{ needs.build.outputs.source-sha }}" >> "$GITHUB_STEP_SUMMARY"
           echo "artifact_digest=${{ needs.build.outputs.artifact-digest }}" >> "$GITHUB_STEP_SUMMARY"
           echo "smoke_url=$PAGE_URL" >> "$GITHUB_STEP_SUMMARY"
