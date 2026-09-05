@@ -11,7 +11,7 @@ export function validateNote(value) {
 export function loadNote(storage) {
   try {
     const value = storage.getItem(STORAGE_KEY);
-    return value && value.trim() ? value : '';
+    return value && value.trim() ? value.trim() : '';
   } catch { return ''; }
 }
 
