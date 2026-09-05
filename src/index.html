@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Daily Marker</title><link rel="stylesheet" href="styles.css"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="daily-marker" content="ready"><title>Daily Marker</title><link rel="stylesheet" href="styles.css"></head>
 <body><main><p class="eyebrow">DAILY MARKER</p><h1>What matters today?</h1><p class="intro">Keep one small thought close.</p>
 <form id="marker-form"><label for="note">Your note</label><textarea id="note" name="note" maxlength="40" aria-describedby="error" rows="3"></textarea><p id="error" role="alert" aria-live="polite"></p><button type="submit">Save note</button></form>
 <section aria-live="polite"><h2>Your marker</h2><p id="saved" hidden></p><button id="clear" type="button" hidden>Clear</button></section></main><script type="module" src="app.mjs"></script></body></html>
