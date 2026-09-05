@@ -156,6 +156,15 @@ jobs:
         id: pages-deploy
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
 
+      - name: HTTP Daily Marker smoke
+        env:
+          PAGE_URL: ${{ steps.pages-deploy.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --retry 0 "$PAGE_URL" |
+            grep --fixed-strings --quiet '<meta name="daily-marker" content="ready">'
+
       - name: Pinned Playwright Daily Marker acceptance
         shell: bash
         env:

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('saves, reloads, rejects blank input, and clears a marker', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   const input = page.getByLabel('Your note');
   const error = page.locator('#error');
 
